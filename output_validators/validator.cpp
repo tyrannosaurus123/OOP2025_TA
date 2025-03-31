@@ -181,6 +181,10 @@ void readUser() {
                     user_flows[flowID].labels = vector<int>(userOutput.begin() + 1, userOutput.end());
                     user_acceptedFlow += input_flows[flowID].flowSize;
                 }
+            } else {
+                cerr << "user output size: " << userOutput.size() << endl;
+                cerr << "user output format error!" << endl;
+                wa();
             }
         }
 
@@ -189,7 +193,6 @@ void readUser() {
         vector<int> userOutput = ss2vector(s);
         if ((int)userOutput.size() != 1) {
             cerr << "user did not print out total flow size" << endl;
-            assert(userOutput.size() == 43);
             wa();
         }
 
