@@ -1,4 +1,3 @@
-#include <cassert>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -44,7 +43,7 @@ map<pair<int, int>, int> residual_cap;  // input[{node1, node2}] = capacity
 
 map<pair<int, int>, int> tmp_cnt_cap;  // need to be later
 map<int, flow_data> input_flows;
-map<pair<int, int>, int> baseline_routingTable;  // stores baseline routing table
+map<pair<int, int>, int> user_routingTable;  // stores baseline routing table
 
 int checker_acceptedFlow = 0;
 
@@ -52,6 +51,9 @@ int checker_acceptedFlow = 0;
 map<int, flow_data> user_flows;
 int user_acceptedFlow = 0;
 int user_acceptedSDpair = 0;
+
+// baseline
+int baseline_acceptedFlow = 0;  // accepted flow size
 
 // read input in .in
 void readInput(ifstream &inFile) {
@@ -83,27 +85,6 @@ void readAns(ifstream &ansFile) {
     int curID = 0;
     ansFile >> msg;
     cerr << "msg: " << msg << endl;
-    getline(ansFile, s);
-    int cnt = 0;
-    // cerr << "#numSwitches" << numSwitches << endl;
-    while (curID < numSwitches) {
-        getline(ansFile, s);
-        // cout << curID << " " << numSwitches << endl;
-        // cerr << "ans output: " << s << endl;
-        vector<int> ansOutput = ss2vector(s);
-        if ((int)ansOutput.size() == 1) {
-            curID++;
-        }
-        for (int i = 0; i < numSwitches - 1; i++) {
-            getline(ansFile, s);
-            vector<int> ansOutput1 = ss2vector(s);
-            if (ansOutput1.size() != 2) {
-                cerr << "ans output size: " << ansOutput1.size() << endl;
-                wa();
-            }
-            baseline_routingTable[make_pair(curID - 1, ansOutput1[0])] = ansOutput1[1];
-        }
-    }
     return;
 }
 
@@ -139,20 +120,19 @@ void readUser() {
                         cerr << "user output size: " << userOutput1.size() << endl;
                         wa();
                     }
-                    if (baseline_routingTable[make_pair(curID - 1, userOutput1[0])] != userOutput1[1]) {
-                        cout << baseline_routingTable[make_pair(curID - 1, userOutput1[0])] << " " << userOutput1[1] << endl;
-                        cerr << "user routing table is not same as baseline" << endl;
-                        wa();
-                    }
+                    user_routingTable[make_pair(curID - 1, userOutput1[0])] = userOutput1[1];
                 }
             }
         }
 
         getline(cin, s);
         vector<int> userOutput0 = ss2vector(s);
-        user_acceptedSDpair = userOutput0[0];
+        if ((int)userOutput0.size() != 1) {
+            cerr << "user did not print out total flow size" << endl;
+            wa();
+        }
+        user_acceptedSDpair = userOutput0[0];  // this is total number of flow pairs
         // cout << user_acceptedSDpair << endl;
-
         // flow table
         int i = 0;
 
@@ -195,6 +175,8 @@ void readUser() {
             cerr << "user did not print out total flow size" << endl;
             wa();
         }
+        user_acceptedFlow = userOutput[0];  // this is total flow size
+        // cout << user_acceptedFlow << endl;
 
         // finish reading user output, now check if the flow is accepted
         // check if user's flow can traverse to the destination
@@ -212,13 +194,16 @@ void readUser() {
 
             for (auto curDst : labels) {
                 while (cur != curDst) {
-                    int next = baseline_routingTable[make_pair(cur, curDst)];
+                    int next = user_routingTable[make_pair(cur, curDst)];
 
                     residual_cap[make_pair(cur, next)] -= flowSize;
                     residual_cap[make_pair(next, cur)] -= flowSize;
 
                     if (residual_cap[make_pair(cur, next)] < 0 || residual_cap[make_pair(next, cur)] < 0) {
                         cerr << "user flow exceed the capacity" << endl;
+                        cerr << "flowID: " << flowId << " cur: " << cur << " next: " << next << endl;
+                        cerr << "residual_cap: " << residual_cap[make_pair(cur, next)] << " " << residual_cap[make_pair(next, cur)] << endl;
+                        cerr << "flowSize: " << flowSize << endl;
                         wa();
                     }
                     cur = next;
@@ -254,11 +239,13 @@ int main(int argc, char *argv[]) {
 
     readUser();
 
+    cerr << "user_acceptedFlow in this case : " << user_acceptedFlow << endl;
     // record all testcase output
     if (msg == "firstCase") {
         // cerr << "first case pass" << endl;
         ofstream total;
         total.open("/tmp/judge_output", ios::out);  //
+        total << user_acceptedFlow << endl;
         total.close();
 
         total.open("/tmp/judge_checker_count", ios::out);
@@ -267,37 +254,39 @@ int main(int argc, char *argv[]) {
     } else if (msg == "lastCase") {
         ifstream all_result, checker_file;
         // checker
-        int checker_cnt = 0, tmp;
+        int checker_cnt = 1, tmp;
         all_result.open("/tmp/judge_checker_count");
         while (all_result >> tmp)
             checker_cnt += tmp;
         all_result.close();
 
         // sum all number of path
-        int user_singal_case = 0, user_total_sum = 0;
+        int user_singal_case = 0, user_total_sum = user_acceptedFlow;
         checker_file.open("/tmp/judge_output");
         while (checker_file >> user_singal_case)
             user_total_sum += user_singal_case;
         checker_file.close();
 
+        cerr << "checker_cnt: " << checker_cnt << endl;
+        cerr << "numTestcase: " << numTestcase << endl;
         if (checker_cnt == numTestcase) {
             cerr << "Checker PASS !!" << endl;
-            cerr << " success probility: " << user_total_sum << endl;  // how to check this??????
+            cerr << "User total flow: " << user_total_sum << endl;
         } else {
             cerr << "Checker Fail !! Please submit code again." << endl;
         }
-    } else {
+    } else if (msg == "otherCase") {
         cerr << "no msg!!" << endl;
         // wa();
         ofstream total;
         total.open("/tmp/judge_output", ios::app);
+        total << user_acceptedFlow << endl;
         total.close();
 
         total.open("/tmp/judge_checker_count", ios::app);
         total << 1 << endl;
         total.close();
     }
-
     accept();
     return 0;
 }

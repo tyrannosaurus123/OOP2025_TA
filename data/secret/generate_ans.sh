@@ -1,19 +1,11 @@
 #!/bin/bash
 
-cd /home/adduser/OOP_TA/testcases_v2 || { echo "無法進入資料夾"; exit 1; }
-
-EXEC=../hw1
-
-if [ ! -f "$EXEC" ]; then
-    echo "找不到執行檔 $EXEC, 請先編譯 hw1.cpp"
-    exit 1
-fi
-
-for infile in *.in; do
-    base="${infile%.in}"
-    outfile="${base}.ans"
-    echo "$infile → $outfile"
-    "$EXEC" < "$infile" > "$outfile"
+for i in {1..20}; do
+    if [ "$i" -eq 1 ]; then
+        echo "firstCase" > "$i.ans"
+    elif [ "$i" -eq 20 ]; then
+        echo "lastCase" > "$i.ans"
+    else
+        echo "otherCase" > "$i.ans"
+    fi
 done
-
-echo "全部輸出完成"
